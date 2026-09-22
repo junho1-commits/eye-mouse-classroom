@@ -86,6 +86,10 @@ function App() {
   const cameraStateRef = useRef<CameraState>('off')
   const audioRef = useRef<HTMLAudioElement | null>(null)
 
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [step])
+
   useEffect(() => { pausedRef.current = paused }, [paused])
   useEffect(() => { cameraStateRef.current = cameraState }, [cameraState])
 
@@ -312,7 +316,7 @@ function Landing({ onStart }: { onStart: () => void }) {
   return <section className="landing page">
     <div className="landing-copy">
       <p className="eyebrow"><Accessibility size={18} /> 장애공감 보조기술 체험</p>
-      <h1>우리의 눈은<br /><span>또 하나의 마우스</span>입니다.</h1>
+      <h1>눈은 또 하나의<br /><span>마우스입니다.</span></h1>
       <p className="lead">손을 쓰지 않고도 선택하고, 소통하고, 작품을 만들 수 있어요.<br />방법이 다를 뿐, 가능성은 같으니까요.</p>
       <button data-dwell className="primary jumbo" onClick={onStart}>체험 시작하기 <ArrowRight /></button>
       <p className="hint"><MousePointer2 size={16} /> 처음에는 마우스로 눌러도 돼요.</p>
