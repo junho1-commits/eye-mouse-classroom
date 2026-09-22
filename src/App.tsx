@@ -10,6 +10,8 @@ type CameraState = 'off' | 'loading' | 'active' | 'error'
 type Point = { x: number; y: number }
 
 const dwellMs = 1200
+const blankArtColor = '#fffdf8'
+const artRegionCount = 10
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([
@@ -70,7 +72,7 @@ function App() {
   const [mission, setMission] = useState(0)
   const [missionResult, setMissionResult] = useState<'correct' | 'try' | null>(null)
   const [paint, setPaint] = useState('#ef6f51')
-  const [tiles, setTiles] = useState<string[]>(Array(16).fill('#f7f1e4'))
+  const [tiles, setTiles] = useState<string[]>(Array(artRegionCount).fill(blankArtColor))
   const [reflection, setReflection] = useState<number | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
@@ -79,7 +81,7 @@ function App() {
   const rawFaceRef = useRef<Point | null>(null)
   const centerRef = useRef<Point | null>(null)
   const smoothRef = useRef<Point>({ x: innerWidth / 2, y: innerHeight / 2 })
-  const dwellRef = useRef<{ el: HTMLElement | null; start: number; fired: boolean }>({ el: null, start: 0, fired: false })
+  const dwellRef = useRef<{ el: HTMLElement | SVGElement | null; start: number; fired: boolean }>({ el: null, start: 0, fired: false })
   const pausedRef = useRef(false)
   const cameraStateRef = useRef<CameraState>('off')
   const audioRef = useRef<HTMLAudioElement | null>(null)
@@ -94,7 +96,7 @@ function App() {
 
   const processDwell = useCallback((point: Point, now: number) => {
     if (pausedRef.current) return
-    const el = document.elementFromPoint(point.x, point.y)?.closest('[data-dwell]') as HTMLElement | null
+    const el = document.elementFromPoint(point.x, point.y)?.closest('[data-dwell]') as (HTMLElement | SVGElement) | null
     if (!el || el.getAttribute('aria-disabled') === 'true') {
       dwellRef.current = { el: null, start: 0, fired: false }
       setDwellProgress(0)
@@ -109,7 +111,8 @@ function App() {
     setDwellProgress(progress)
     if (progress >= 1 && !dwellRef.current.fired) {
       dwellRef.current.fired = true
-      el.click()
+      if ('click' in el && typeof el.click === 'function') el.click()
+      else el.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       window.setTimeout(() => {
         dwellRef.current = { el: null, start: 0, fired: false }
         setDwellProgress(0)
@@ -261,7 +264,7 @@ function App() {
 
   const restart = () => {
     setStep(0); setMission(0); setMissionResult(null); setSelectedMessage(null)
-    setTiles(Array(16).fill('#f7f1e4')); setReflection(null)
+    setTiles(Array(artRegionCount).fill(blankArtColor)); setReflection(null)
   }
 
   return (
@@ -316,7 +319,9 @@ function Landing({ onStart }: { onStart: () => void }) {
     </div>
     <div className="hero-art" aria-hidden="true">
       <div className="sun" />
-      <div className="face"><div className="eye left"><i /></div><div className="eye right"><i /></div><div className="smile" /></div>
+      <div className="school-character-frame">
+        <img src={`${import.meta.env.BASE_URL}characters/sunflower-girl-front.png`} alt="" />
+      </div>
       <div className="orbit orbit-one"><MessageCircle /></div>
       <div className="orbit orbit-two"><Palette /></div>
       <div className="orbit orbit-three"><Heart /></div>
@@ -352,7 +357,7 @@ function Communication({ selected, onSelect, onNext }: { selected: number | null
   return <section className="page narrow">
     <PageTitle number="02" icon={<MessageCircle />} title="눈으로 마음을 전해요" subtitle="소통은 말로만 하는 것이 아니에요. 전하고 싶은 말을 선택해 보세요." />
     <div className="message-scene">
-      <div className="friend" aria-hidden="true"><div className="friend-face">😊</div><p>무슨 말을 전하고 싶나요?</p></div>
+      <div className="friend" aria-hidden="true"><div className="friend-character"><img src={`${import.meta.env.BASE_URL}characters/mountain-boy-front.png`} alt="" /></div><p>산이에게 무슨 말을 전하고 싶나요?</p></div>
       <div className="message-options">
         {messages.map((message, i) => <button data-dwell className={`message-button ${selected === i ? 'selected' : ''}`} key={message.text} onClick={() => onSelect(i)}><span>{message.emoji}</span><b>{message.text}</b>{selected === i && <Volume2 />}</button>)}
       </div>
@@ -381,12 +386,51 @@ function Classroom({ mission, result, onChoose, onNext }: { mission: number; res
 
 function Art({ paint, setPaint, tiles, setTiles, onNext }: { paint: string; setPaint: (c: string) => void; tiles: string[]; setTiles: (t: string[]) => void; onNext: () => void }) {
   const colors = ['#ef6f51', '#f4b942', '#48a9a6', '#4f6d7a', '#7b5ea7', '#2d8a5b']
-  const colored = tiles.filter(c => c !== '#f7f1e4').length
+  const colored = tiles.filter(c => c !== blankArtColor).length
+  const colorRegion = (index: number) => {
+    const next = [...tiles]
+    next[index] = paint
+    setTiles(next)
+  }
+  const regionProps = (index: number, label: string) => ({
+    'data-dwell': true,
+    role: 'button',
+    tabIndex: 0,
+    'aria-label': `${label} 색칠하기`,
+    fill: tiles[index],
+    onClick: () => colorRegion(index),
+    onKeyDown: (event: React.KeyboardEvent<SVGElement>) => {
+      if (event.key === 'Enter' || event.key === ' ') colorRegion(index)
+    },
+  })
   return <section className="page narrow">
-    <PageTitle number="04" icon={<Palette />} title="눈으로 작품을 만들어요" subtitle="원하는 색을 고르고 칸을 선택해 나만의 모자이크를 완성하세요." />
+    <PageTitle number="04" icon={<Palette />} title="눈으로 작품을 만들어요" subtitle="원하는 색을 고르고 선화 안의 넓은 영역을 선택해 모덕의 풍경을 완성하세요." />
     <div className="art-studio">
-      <aside className="palette-panel"><h2>색을 골라요</h2><div className="color-list">{colors.map(c => <button data-dwell aria-label={`색상 ${c}`} key={c} className={paint === c ? 'active' : ''} style={{ backgroundColor: c }} onClick={() => setPaint(c)}>{paint === c && <Check />}</button>)}</div><button data-dwell className="secondary" onClick={() => setTiles(Array(16).fill('#f7f1e4'))}><RotateCcw /> 다시 그리기</button></aside>
-      <div className="canvas-wrap"><div className="mosaic">{tiles.map((color, i) => <button data-dwell aria-label={`${i + 1}번 칸 채우기`} key={i} style={{ backgroundColor: color }} onClick={() => { const next = [...tiles]; next[i] = paint; setTiles(next) }} />)}</div><p>{colored === 0 ? '칸 위에 머물러 색을 입혀 보세요.' : `${colored}개의 선택으로 작품이 만들어지고 있어요.`}</p></div>
+      <aside className="palette-panel"><h2>색을 골라요</h2><div className="color-list">{colors.map(c => <button data-dwell aria-label={`색상 ${c}`} key={c} className={paint === c ? 'active' : ''} style={{ backgroundColor: c }} onClick={() => setPaint(c)}>{paint === c && <Check />}</button>)}</div><button data-dwell className="secondary" onClick={() => setTiles(Array(artRegionCount).fill(blankArtColor))}><RotateCcw /> 다시 그리기</button></aside>
+      <div className="canvas-wrap">
+        <svg className="coloring-svg" viewBox="0 0 760 500" aria-label="모덕초등학교와 자연 선화">
+          <rect {...regionProps(0, '하늘')} x="8" y="8" width="744" height="484" rx="18" />
+          <circle {...regionProps(1, '해')} cx="650" cy="92" r="54" />
+          <path {...regionProps(2, '산')} d="M10 300 L150 138 L245 240 L360 104 L520 300 Z" />
+          <path {...regionProps(3, '들판')} d="M8 322 Q160 280 310 324 T752 314 L752 492 L8 492 Z" />
+          <rect {...regionProps(4, '학교 건물')} x="260" y="245" width="300" height="198" rx="4" />
+          <path {...regionProps(5, '학교 지붕')} d="M230 250 L410 145 L590 250 Z" />
+          <rect {...regionProps(6, '학교 문')} x="374" y="340" width="72" height="103" rx="4" />
+          <g {...regionProps(7, '왼쪽 해바라기')}>
+            <circle cx="120" cy="365" r="25" /><path d="M120 335 C83 305 75 350 102 360 C72 372 84 408 113 388 C118 424 157 413 139 383 C175 394 181 354 145 355 C161 325 132 311 120 335 Z" />
+          </g>
+          <g {...regionProps(8, '오른쪽 해바라기')}>
+            <circle cx="650" cy="382" r="25" /><path d="M650 352 C613 322 605 367 632 377 C602 389 614 425 643 405 C648 441 687 430 669 400 C705 411 711 371 675 372 C691 342 662 328 650 352 Z" />
+          </g>
+          <path {...regionProps(9, '길')} d="M382 443 L438 443 L508 492 L315 492 Z" />
+          <g className="line-details" aria-hidden="true">
+            <rect x="293" y="284" width="56" height="49" rx="3" /><rect x="471" y="284" width="56" height="49" rx="3" />
+            <path d="M410 145 V214 M380 185 H440" /><path d="M120 407 V472 M650 424 V480" />
+            <path d="M92 430 Q120 408 148 430 M622 447 Q650 425 678 447" />
+          </g>
+        </svg>
+        <p>{colored === 0 ? '선화의 넓은 영역 위에 머물러 색을 입혀 보세요.' : `${colored}개의 영역에 색을 입혔어요.`}</p>
+      </div>
     </div>
     {colored >= 4 && <div className="success-strip"><Palette /> <b>멋진 작품이에요!</b> 손이 아닌 눈과 얼굴로도 생각을 표현할 수 있어요.</div>}
     <PageNav back={() => {}} next={onNext} hideBack nextLabel="체험 마무리하기" disabled={colored < 4} />
