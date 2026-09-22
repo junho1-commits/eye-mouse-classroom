@@ -1,0 +1,48 @@
+{
+  "attribution": {
+    "source": "api-page",
+    "generated_by": "codex"
+  },
+  "model": "ssfm-v30",
+  "language": "kor",
+  "voice": {
+    "id": "tc_686dc43ebd6351e06ee64d74",
+    "name": {
+      "eng": "Wonwoo",
+      "kor": "원우"
+    },
+    "gender": "male",
+    "age": "young_adult",
+    "preview_url": "https://static2.typecast.ai/c/audio_QA-approved_1761021415637/251017135545_686dc43ebd6351e06ee64d74_SSFM-V3_0.mp3"
+  },
+  "clips": [
+    {
+      "file": "hello.mp3",
+      "text": "안녕! 만나서 반가워."
+    },
+    {
+      "file": "together.mp3",
+      "text": "같이 해볼래?"
+    },
+    {
+      "file": "my-way.mp3",
+      "text": "나는 이런 방법으로 소통해."
+    },
+    {
+      "file": "thanks.mp3",
+      "text": "고마워!"
+    },
+    {
+      "file": "mission-eye-mouse.mp3",
+      "text": "눈이나 얼굴 움직임을 입력으로 바꾸면 자신의 방법으로 컴퓨터를 사용할 수 있어요."
+    },
+    {
+      "file": "mission-large-buttons.mp3",
+      "text": "큰 버튼과 넓은 간격은 선택 실수를 줄여 모두에게 편한 화면을 만들어요."
+    },
+    {
+      "file": "mission-communication.mp3",
+      "text": "그림과 글자, 음성을 활용하면 여러 방법으로 생각을 나눌 수 있어요."
+    }
+  ]
+}
